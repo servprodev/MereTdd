@@ -8,5 +8,6 @@ HEADERS += \
     src/test.h
 
 SOURCES += \
+    src/test/confirm.cpp \
     src/test/creation.cpp \
     src/test/main.cpp

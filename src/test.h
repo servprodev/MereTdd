@@ -1,12 +1,39 @@
 #ifndef MERETDD_TEST_H
 #define MERETDD_TEST_H
 
+#include <string>
 #include <string_view>
 #include <vector>
 #include <ostream>
 
 namespace MereTdd
 {
+  class ConfirmException
+  {
+  public:
+    ConfirmException() = default;
+    ~ConfirmException() = default;
+
+    std::string_view reason() const
+    {
+      return m_reason;
+    }
+
+  protected:
+    std::string m_reason;
+  };
+
+  class BoolConfirmException : public ConfirmException
+  {
+  public:
+    BoolConfirmException(bool expected, int line)
+    {
+      m_reason = "Confirm failed on line " + std::to_string(line) + "\n";
+      m_reason += "Expected: "; 
+      m_reason += expected ? "true" : "false";
+    }
+  };
+
   class MissingException
   {
   public:
@@ -91,6 +118,10 @@ namespace MereTdd
       {
         test->runEx();
       }
+      catch (ConfirmException const& ex)
+      {
+        test->setFailed(ex.reason());
+      }
       catch (MissingException const& ex)
       {
         std::string message = "Expected exception type ";
@@ -142,6 +173,7 @@ namespace MereTdd
 #define MERETDD_INSTANCE MERETDD_INSTANCE_RELAY( __LINE__ )
 
 #define TEST(testName) \
+namespace { \
   class MERETDD_CLASS : public MereTdd::TestBase \
   { \
   public: \
@@ -152,10 +184,12 @@ namespace MereTdd
     } \
     void run() override; \
   }; \
+} /* end namespace */ \
   MERETDD_CLASS MERETDD_INSTANCE(testName); \
   void MERETDD_CLASS::run()
 
 #define TEST_EX(testName, exceptionType) \
+namespace { \
   class MERETDD_CLASS : public MereTdd::TestBase \
   { \
   public: \
@@ -178,8 +212,20 @@ namespace MereTdd
     } \
     void run() override; \
   }; \
+} /* end namespace */ \
   MERETDD_CLASS MERETDD_INSTANCE(testName); \
   void MERETDD_CLASS::run()
 
+#define CONFIRM_FALSE(actual) \
+if (actual) \
+{ \
+  throw MereTdd::BoolConfirmException(false, __LINE__); \
+}
+
+#define CONFIRM_TRUE(actual) \
+if (!actual) \
+{ \
+  throw MereTdd::BoolConfirmException(true, __LINE__); \
+}
 
 #endif // MERETDD_TEST_H
